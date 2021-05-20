@@ -105,9 +105,7 @@ def validate(val_loader, model, criterion, epoch_index, F_txt):
         input_var2 = []
         for i in range(len(support_images)):
             temp_support = support_images[i]
-            print(type(temp_support))
             temp_support = torch.cat(temp_support, 0)
-            print(temp_support.shape)
             temp_support = temp_support.cuda()
             input_var2.append(temp_support)
 
@@ -121,6 +119,8 @@ def validate(val_loader, model, criterion, epoch_index, F_txt):
 
         # measure accuracy and record loss
         prec1, _ = accuracy(output, target, topk=(1, 3))
+        print(prec1.shape)
+        print(prec1)
         losses.update(loss.item(), query_images.size(0))
         top1.update(prec1[0], query_images.size(0))
         accuracies.append(prec1)
