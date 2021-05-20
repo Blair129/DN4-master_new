@@ -119,8 +119,6 @@ def validate(val_loader, model, criterion, epoch_index, F_txt):
 
         # measure accuracy and record loss
         prec1, _ = accuracy(output, target, topk=(1, 3))
-        print(prec1.shape)
-        print(prec1)
         losses.update(loss.item(), query_images.size(0))
         top1.update(prec1[0], query_images.size(0))
         accuracies.append(prec1)
@@ -183,8 +181,6 @@ def accuracy(output, target, topk=(1,)):
         for k in topk:
             correct_k = correct[:k].reshape(-1).float().sum(0, keepdim=True)
             res.append(correct_k.mul_(100.0 / batch_size))
-        print(len((res)))
-        print(res)
         return res
 
 
