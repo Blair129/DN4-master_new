@@ -114,10 +114,9 @@ def validate(val_loader, model, criterion, epoch_index, F_txt):
 		input_var2 = []
 		for i in range(len(support_images)):
 			temp_support = support_images[i]
-			print(type(temp_support))
 			print(len(temp_support))
-			print(type(temp_support[0]))
 			temp_support = torch.cat(temp_support, 0)
+			print(temp_support.shape)
 			temp_support = temp_support.cuda()
 			input_var2.append(temp_support)
 
