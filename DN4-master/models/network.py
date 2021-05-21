@@ -237,6 +237,7 @@ class ImgtoClass_Metric(nn.Module):
 
                 # choose the top-k nearest neighbors
                 topk_value, topk_index = torch.topk(innerproduct_matrix, self.neighbor_k, 1)
+                print(topk_value, topk_index)
                 inner_sim[0, j] = torch.sum(topk_value)
 
             Similarity_list.append(inner_sim)
