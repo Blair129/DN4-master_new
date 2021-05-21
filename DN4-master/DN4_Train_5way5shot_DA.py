@@ -144,7 +144,8 @@ def train(train_loader, model, criterion, optimizer, epoch_index, F_txt):
 
 
 		#============== print the intermediate results ==============#
-		if episode_index % opt.print_freq == 0 and episode_index != 0:
+		# if episode_index % opt.print_freq == 0 and episode_index != 0:
+		if episode_index % opt.print_freq == 0:
 
 			print('Eposide-({0}): [{1}/{2}]\t'
 				'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
@@ -211,7 +212,8 @@ def validate(val_loader, model, criterion, epoch_index, best_prec1, F_txt):
 
 
 		#============== print the intermediate results ==============#
-		if episode_index % opt.print_freq == 0 and episode_index != 0:
+		# if episode_index % opt.print_freq == 0 and episode_index != 0:
+		if episode_index % opt.print_freq == 0:
 
 			print('Test-({0}): [{1}/{2}]\t'
 				'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
