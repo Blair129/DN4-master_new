@@ -245,9 +245,49 @@ class ImgtoClass_Metric(nn.Module):
         return Similarity_list
 
 
+    def cal_euclideandistance(self, input1, input2):
+        B, C, h, w = input1.size()
+        Similarity_list = []
+
+        for i in range(B):
+            query_sam = input1[i]
+            query_sam = query_sam.view(C, -1)
+            query_sam = torch.transpose(query_sam, 0, 1)
+            # print(query_sam.shape)
+            # query_sam_norm = torch.norm(query_sam, 2, 1, True)
+            # query_sam = query_sam/query_sam_norm
+
+            if torch.cuda.is_available():
+                inner_sim = torch.zeros(1, len(input2)).cuda()
+                # print("inner_sim"+str(inner_sim.shape))
+
+            for j in range(len(input2)):
+                support_set_sam = input2[j]
+                # print(support_set_sam.shape)
+                support_set_sam = torch.transpose(support_set_sam, 0, 1)
+                # support_set_sam_norm = torch.norm(support_set_sam, 2, 0, True)
+                # support_set_sam = support_set_sam/support_set_sam_norm
+
+                # euclidean distance between a query sample and a support category
+                innerproduct_matrix = torch.cdist(query_sam, support_set_sam, p=2)
+                print("innerproduct"+str(innerproduct_matrix.shape))
+
+                # choose the top-k nearest neighbors
+                topk_value, topk_index = torch.topk(innerproduct_matrix, self.neighbor_k, 1, largest= False)
+                print(topk_value, topk_index)
+                inner_sim[0, j] = torch.sum(topk_value)
+
+            Similarity_list.append(inner_sim)
+
+        Similarity_list = torch.cat(Similarity_list, 0)
+        # print(Similarity_list.shape)
+
+        return Similarity_list
+
+
     def forward(self, x1, x2):
 
-        Similarity_list = self.cal_cosinesimilarity(x1, x2)
+        Similarity_list = self.cal_euclideandistance(x1, x2)
 
         return Similarity_list
 
