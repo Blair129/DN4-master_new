@@ -243,16 +243,22 @@ class AverageMeter(object):
 		self.reset()
 
 	def reset(self):
+		print("reset")
 		self.val = 0
 		self.avg = 0
 		self.sum = 0
 		self.count = 0
 
 	def update(self, val, n=1):
+		print("n: "+str(n))
 		self.val = val
 		self.sum += val * n
 		self.count += n
 		self.avg = self.sum / self.count
+		print("val: "+str(self.val))
+		print("sum: "+str(self.sum))
+		print("count: "+str(self.count))
+		print("avg: "+str(self.avg))
 
 
 def accuracy(output, target, topk=(1,)):
