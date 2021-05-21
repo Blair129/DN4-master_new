@@ -179,8 +179,10 @@ def validate(val_loader, model, criterion, epoch_index, best_prec1, F_txt):
 	end = time.time()
 	for episode_index, (query_images, query_targets, support_images, support_targets) in enumerate(val_loader):
 
+
 		# Convert query and support images
 		query_images = torch.cat(query_images, 0)
+		print(query_images.shape)
 		input_var1 = query_images.cuda()
 
 
