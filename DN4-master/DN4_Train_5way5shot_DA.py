@@ -138,6 +138,7 @@ def train(train_loader, model, criterion, optimizer, epoch_index, F_txt):
 		top1.update(prec1[0], query_images.size(0))
 
 
+
 		# Measure elapsed time
 		batch_time.update(time.time() - end)
 		end = time.time()
@@ -146,6 +147,7 @@ def train(train_loader, model, criterion, optimizer, epoch_index, F_txt):
 		#============== print the intermediate results ==============#
 		# if episode_index % opt.print_freq == 0 and episode_index != 0:
 		if episode_index % opt.print_freq == 0:
+			print(top1.count)
 
 			print('Eposide-({0}): [{1}/{2}]\t'
 				'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
@@ -203,6 +205,7 @@ def validate(val_loader, model, criterion, epoch_index, best_prec1, F_txt):
 		prec1, _ = accuracy(output, target, topk=(1, 3))
 		losses.update(loss.item(), query_images.size(0))
 		top1.update(prec1[0], query_images.size(0))
+
 		accuracies.append(prec1)
 
 
@@ -214,6 +217,7 @@ def validate(val_loader, model, criterion, epoch_index, best_prec1, F_txt):
 		#============== print the intermediate results ==============#
 		# if episode_index % opt.print_freq == 0 and episode_index != 0:
 		if episode_index % opt.print_freq == 0:
+			print(top1.count)
 
 			print('Test-({0}): [{1}/{2}]\t'
 				'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
