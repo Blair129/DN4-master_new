@@ -109,7 +109,7 @@ def train(train_loader, model, criterion, optimizer, epoch_index, F_txt):
 
 		# Convert query and support images
 		query_images = torch.cat(query_images, 0)
-		print(query_images.shape)
+		# print(query_images.shape)
 		input_var1 = query_images.cuda()
 
 		input_var2 = []
@@ -148,7 +148,6 @@ def train(train_loader, model, criterion, optimizer, epoch_index, F_txt):
 		#============== print the intermediate results ==============#
 		# if episode_index % opt.print_freq == 0 and episode_index != 0:
 		if episode_index % opt.print_freq == 0:
-			print(top1.count)
 
 			print('Eposide-({0}): [{1}/{2}]\t'
 				'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
@@ -183,7 +182,7 @@ def validate(val_loader, model, criterion, epoch_index, best_prec1, F_txt):
 
 		# Convert query and support images
 		query_images = torch.cat(query_images, 0)
-		print(query_images.shape)
+		# print(query_images.shape)
 		input_var1 = query_images.cuda()
 
 
@@ -220,7 +219,7 @@ def validate(val_loader, model, criterion, epoch_index, best_prec1, F_txt):
 		#============== print the intermediate results ==============#
 		# if episode_index % opt.print_freq == 0 and episode_index != 0:
 		if episode_index % opt.print_freq == 0:
-			print(top1.count)
+			# print(top1.count)
 
 			print('Test-({0}): [{1}/{2}]\t'
 				'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
@@ -252,14 +251,12 @@ class AverageMeter(object):
 		self.reset()
 
 	def reset(self):
-		print("reset")
 		self.val = 0
 		self.avg = 0
 		self.sum = 0
 		self.count = 0
 
 	def update(self, val, n=1):
-		# print("n: "+str(n))
 		self.val = val
 		self.sum += val * n
 		self.count += n
