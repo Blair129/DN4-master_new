@@ -250,15 +250,15 @@ class AverageMeter(object):
 		self.count = 0
 
 	def update(self, val, n=1):
-		print("n: "+str(n))
+		# print("n: "+str(n))
 		self.val = val
 		self.sum += val * n
 		self.count += n
 		self.avg = self.sum / self.count
-		print("val: "+str(self.val))
-		print("sum: "+str(self.sum))
-		print("count: "+str(self.count))
-		print("avg: "+str(self.avg))
+		# print("val: "+str(self.val))
+		# print("sum: "+str(self.sum))
+		# print("count: "+str(self.count))
+		# print("avg: "+str(self.avg))
 
 
 def accuracy(output, target, topk=(1,)):
@@ -342,6 +342,7 @@ start_time = time.time()
 
 
 for epoch_item in range(opt.epochs):
+	print("epoch_item: " + str(epoch_item))
 	print('===================================== Epoch %d =====================================' %epoch_item)
 	print('===================================== Epoch %d =====================================' %epoch_item, file=F_txt)
 	adjust_learning_rate(optimizer, epoch_item) 
