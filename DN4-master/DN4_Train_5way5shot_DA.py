@@ -109,6 +109,7 @@ def train(train_loader, model, criterion, optimizer, epoch_index, F_txt):
 
 		# Convert query and support images
 		query_images = torch.cat(query_images, 0)
+		print(query_images.shape)
 		input_var1 = query_images.cuda()
 
 		input_var2 = []
