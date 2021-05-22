@@ -230,11 +230,11 @@ class ImgtoClass_Metric(nn.Module):
 
                 # cosine similarity between a query sample and a support category
                 innerproduct_matrix = query_sam@support_set_sam
-                print("innerproduct"+str(innerproduct_matrix.shape))
+                # print("innerproduct"+str(innerproduct_matrix.shape))
 
                 # choose the top-k nearest neighbors
                 topk_value, topk_index = torch.topk(innerproduct_matrix, self.neighbor_k, 1)
-                print(topk_value, topk_index)
+                # print(topk_value, topk_index)
                 inner_sim[0, j] = torch.sum(topk_value)
 
             Similarity_list.append(inner_sim)
@@ -287,7 +287,7 @@ class ImgtoClass_Metric(nn.Module):
 
     def forward(self, x1, x2):
 
-        Similarity_list = self.cal_euclideandistance(x1, x2)
+        Similarity_list = self.cal_cosinesimilarity(x1, x2)
 
         return Similarity_list
 
