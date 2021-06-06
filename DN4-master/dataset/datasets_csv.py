@@ -67,8 +67,11 @@ class Imagefolder_csv(object):
 	
 		# set the paths of the csv files
 		train_csv = os.path.join(data_dir, 'train.csv')
+		train_query_csv = os.path.join(data_dir, 'train_query_csv')
 		val_csv = os.path.join(data_dir, 'val.csv')
+		val_query_csv = os.path.join(data_dir, 'val_query_csv')
 		test_csv = os.path.join(data_dir, 'test.csv')
+		test_query_csv = os.path_join(data_dir, 'test_query_csv')
 
 
 		data_list = []
@@ -92,6 +95,21 @@ class Imagefolder_csv(object):
 			f_csv.close()
 			class_list = class_img_dict.keys()
 
+			class_img_dict_query = {}
+			with open(train_query_csv) as f_csv:
+				f_train_query = csv.reader(f_csv, delimiter=',')
+				for row in f_train_query:
+					if f_train_query.line_num == 1:
+						continue
+					img_name, img_class = row
+
+					if img_class in class_img_dict_query:
+						class_img_dict_query[img_class].append(img_name)
+					else:
+						class_img_dict_query[img_class]=[]
+						class_img_dict_query[img_class].append(img_name)
+			f_csv.close()
+
 
 			while e < episode_num:
 
@@ -104,8 +122,10 @@ class Imagefolder_csv(object):
 				for item in temp_list:
 					label_num += 1
 					imgs_set = class_img_dict[item]
+					imgs_query_set = class_img_dict_query[item]
 					support_imgs = random.sample(imgs_set, shot_num)
-					query_imgs = [val for val in imgs_set if val not in support_imgs]
+					query_imgs = random.sample(imgs_query_set, shot_num)
+					# query_imgs = [val for val in imgs_set if val not in support_imgs]
 
 					if query_num < len(query_imgs):
 						query_imgs = random.sample(query_imgs, query_num)
@@ -144,6 +164,21 @@ class Imagefolder_csv(object):
 			f_csv.close()
 			class_list = class_img_dict.keys()
 
+			class_img_dict_query = {}
+			with open(val_query_csv) as f_csv:
+				f_val_query = csv.reader(f_csv, delimiter=',')
+				for row in f_val_query:
+					if f_val_query.line_num == 1:
+						continue
+					img_name, img_class = row
+
+					if img_class in class_img_dict_query:
+						class_img_dict_query[img_class].append(img_name)
+					else:
+						class_img_dict_query[img_class]=[]
+						class_img_dict_query[img_class].append(img_name)
+			f_csv.close()
+
 
 
 			while e < episode_num:   # setting the episode number to 600
@@ -157,8 +192,10 @@ class Imagefolder_csv(object):
 				for item in temp_list:
 					label_num += 1
 					imgs_set = class_img_dict[item]
+					imgs_query_set = class_img_dict_query[item]
 					support_imgs = random.sample(imgs_set, shot_num)
-					query_imgs = [val for val in imgs_set if val not in support_imgs]
+					query_imgs = random.sample(imgs_query_set, shot_num)
+					# query_imgs = [val for val in imgs_set if val not in support_imgs]
 
 					if query_num<len(query_imgs):
 						query_imgs = random.sample(query_imgs, query_num)
@@ -195,6 +232,21 @@ class Imagefolder_csv(object):
 			f_csv.close()
 			class_list = class_img_dict.keys()
 
+			class_img_dict_query = {}
+			with open(test_query_csv) as f_csv:
+				f_test_query = csv.reader(f_csv, delimiter=',')
+				for row in f_test_query:
+					if f_test_query.line_num == 1:
+						continue
+					img_name, img_class = row
+
+					if img_class in class_img_dict_query:
+						class_img_dict_query[img_class].append(img_name)
+					else:
+						class_img_dict_query[img_class]=[]
+						class_img_dict_query[img_class].append(img_name)
+			f_csv.close()
+
 
 			while e < episode_num:   # setting the episode number to 600
 
@@ -207,8 +259,9 @@ class Imagefolder_csv(object):
 				for item in temp_list:
 					label_num += 1
 					imgs_set = class_img_dict[item]
+					imgs_query_set = class_img_dict_query[item]
 					support_imgs = random.sample(imgs_set, shot_num)
-					query_imgs = [val for val in imgs_set if val not in support_imgs]
+					query_imgs = random.sample(imgs_query_set, shot_num)
 
 					if query_num<len(query_imgs):
 						query_imgs = random.sample(query_imgs, query_num)
