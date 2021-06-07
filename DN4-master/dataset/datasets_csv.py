@@ -67,11 +67,11 @@ class Imagefolder_csv(object):
 	
 		# set the paths of the csv files
 		train_csv = os.path.join(data_dir, 'train.csv')
-		train_query_csv = os.path.join(data_dir, 'train_query_csv')
+		train_query_csv = os.path.join(data_dir, 'train_query.csv')
 		val_csv = os.path.join(data_dir, 'val.csv')
-		val_query_csv = os.path.join(data_dir, 'val_query_csv')
+		val_query_csv = os.path.join(data_dir, 'val_query.csv')
 		test_csv = os.path.join(data_dir, 'test.csv')
-		test_query_csv = os.path.join(data_dir, 'test_query_csv')
+		test_query_csv = os.path.join(data_dir, 'test_query.csv')
 
 
 		data_list = []
