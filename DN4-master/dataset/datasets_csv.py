@@ -71,7 +71,7 @@ class Imagefolder_csv(object):
 		val_csv = os.path.join(data_dir, 'val.csv')
 		val_query_csv = os.path.join(data_dir, 'val_query_csv')
 		test_csv = os.path.join(data_dir, 'test.csv')
-		test_query_csv = os.path_join(data_dir, 'test_query_csv')
+		test_query_csv = os.path.join(data_dir, 'test_query_csv')
 
 
 		data_list = []
