@@ -134,7 +134,7 @@ def train(train_loader, model, criterion, optimizer, epoch_index, F_txt):
 
 	  
 		# Measure accuracy and record loss
-		prec1, _ = accuracy(output, target, topk=(1,3))
+		prec1, _ = accuracy(output, target, topk=(1,2))
 		losses.update(loss.item(), query_images.size(0))
 		top1.update(prec1[0], query_images.size(0))
 
@@ -204,7 +204,7 @@ def validate(val_loader, model, criterion, epoch_index, best_prec1, F_txt):
 
 
 		# measure accuracy and record loss
-		prec1, _ = accuracy(output, target, topk=(1, 3))
+		prec1, _ = accuracy(output, target, topk=(1, 2))
 		losses.update(loss.item(), query_images.size(0))
 		top1.update(prec1[0], query_images.size(0))
 
