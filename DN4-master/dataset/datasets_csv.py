@@ -94,6 +94,7 @@ class Imagefolder_csv(object):
                         class_img_dict[img_class].append(img_name)
             f_csv.close()
             class_list = class_img_dict.keys()
+            print(class_list)
 
             class_img_dict_query = {}
             with open(train_query_csv) as f_csv:
