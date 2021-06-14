@@ -94,7 +94,7 @@ class Imagefolder_csv(object):
                         class_img_dict[img_class].append(img_name)
             f_csv.close()
             class_list = class_img_dict.keys()
-            print(class_list)
+
 
             class_img_dict_query = {}
             with open(train_query_csv) as f_csv:
@@ -189,15 +189,12 @@ class Imagefolder_csv(object):
                 episode = []
                 e += 1
                 temp_list = random.sample(class_list, way_num)
-                print(temp_list)
                 label_num = -1
 
                 for item in temp_list:
                     label_num += 1
                     imgs_set = class_img_dict[item]
-                    print(imgs_set)
                     imgs_query_set = class_img_dict_query[item]
-                    print(imgs_query_set)
                     support_imgs = random.sample(imgs_set, shot_num)
                     query_imgs = random.sample(imgs_query_set, shot_num)
                     # query_imgs = [val for val in imgs_set if val not in support_imgs]
