@@ -80,6 +80,7 @@ parser.add_argument('--nc', type=int, default=3, help='input image channels')
 parser.add_argument('--clamp_lower', type=float, default=-0.01)
 parser.add_argument('--clamp_upper', type=float, default=0.01)
 parser.add_argument('--print_freq', '-p', default=100, type=int, metavar='N', help='print frequency (default: 100)')
+
 opt = parser.parse_args()
 opt.cuda = True
 cudnn.benchmark = True
@@ -118,7 +119,7 @@ def validate(val_loader, model, criterion, epoch_index, F_txt):
         loss = criterion(output, target)
 
         # measure accuracy and record loss
-        prec1, _ = accuracy(output, target, topk=(1, 3))
+        prec1, _ = accuracy(output, target, topk=(1, 2))
         losses.update(loss.item(), query_images.size(0))
         top1.update(prec1[0], query_images.size(0))
         accuracies.append(prec1)
