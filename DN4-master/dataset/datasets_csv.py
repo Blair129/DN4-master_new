@@ -64,7 +64,7 @@ class Imagefolder_csv(object):
 
         super(Imagefolder_csv, self).__init__()
 
-        random.seed(1)
+        # random.seed(1)
         # set the paths of the csv files
         train_csv = os.path.join(data_dir, 'train.csv')
         train_query_csv = os.path.join(data_dir, 'train_query.csv')

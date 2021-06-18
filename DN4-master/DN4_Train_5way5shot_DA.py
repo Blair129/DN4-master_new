@@ -82,10 +82,10 @@ parser.add_argument('--print_freq', '-p', default=100, type=int, metavar='N', he
 opt = parser.parse_args()
 opt.cuda = True
 cudnn.benchmark = True
-np.random.seed(1)
-torch.manual_seed(1)
-torch.cuda.manual_seed_all(1)
-torch.backends.cudnn.deterministic = True
+# np.random.seed(1)
+# torch.manual_seed(1)
+# torch.cuda.manual_seed_all(1)
+# torch.backends.cudnn.deterministic = True
 
 
 
