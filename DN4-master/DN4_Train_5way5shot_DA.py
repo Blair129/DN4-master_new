@@ -209,8 +209,10 @@ def validate(val_loader, model, criterion, epoch_index, best_prec1, F_txt):
 
 		# measure accuracy and record loss
 		prec1, _ = accuracy(output, target, topk=(1, 2))
+		print("prec1:"+str(prec1))
 		losses.update(loss.item(), query_images.size(0))
 		top1.update(prec1[0], query_images.size(0))
+		print("top1:"+str(top1))
 
 		accuracies.append(prec1)
 
@@ -237,7 +239,7 @@ def validate(val_loader, model, criterion, epoch_index, best_prec1, F_txt):
 				'Prec@1 {top1.val:.3f} ({top1.avg:.3f})'.format(
 					epoch_index, episode_index, len(val_loader), batch_time=batch_time, loss=losses, top1=top1), file=F_txt)
 
-		
+	print(top1)
 	print(' * Prec@1 {top1.avg:.3f} Best_prec1 {best_prec1:.3f}'.format(top1=top1, best_prec1=best_prec1))
 	print(' * Prec@1 {top1.avg:.3f} Best_prec1 {best_prec1:.3f}'.format(top1=top1, best_prec1=best_prec1), file=F_txt)
 
