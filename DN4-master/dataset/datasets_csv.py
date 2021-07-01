@@ -70,8 +70,8 @@ class Imagefolder_csv(object):
         train_query_csv = os.path.join(data_dir, 'train_query.csv')
         val_csv = os.path.join(data_dir, 'val.csv')
         val_query_csv = os.path.join(data_dir, 'val_query.csv')
-        test_csv = os.path.join(data_dir, 'test.csv')
-        test_query_csv = os.path.join(data_dir, 'test_query.csv')
+        # test_csv = os.path.join(data_dir, 'test.csv')
+        # test_query_csv = os.path.join(data_dir, 'test_query.csv')
 
 
         data_list = []
@@ -215,72 +215,72 @@ class Imagefolder_csv(object):
                     }
                     episode.append(data_files)
                 data_list.append(episode)
-        else:
-
-            # store all the classes and images into a dict
-            class_img_dict = {}
-            with open(test_csv) as f_csv:
-                f_test = csv.reader(f_csv, delimiter=',')
-                for row in f_test:
-                    if f_test.line_num == 1:
-                        continue
-                    img_name, img_class = row
-
-                    if img_class in class_img_dict:
-                        class_img_dict[img_class].append(img_name)
-                    else:
-                        class_img_dict[img_class]=[]
-                        class_img_dict[img_class].append(img_name)
-            f_csv.close()
-            class_list = class_img_dict.keys()
-
-            class_img_dict_query = {}
-            with open(test_query_csv) as f_csv:
-                f_test_query = csv.reader(f_csv, delimiter=',')
-                for row in f_test_query:
-                    if f_test_query.line_num == 1:
-                        continue
-                    img_name, img_class = row
-
-                    if img_class in class_img_dict_query:
-                        class_img_dict_query[img_class].append(img_name)
-                    else:
-                        class_img_dict_query[img_class]=[]
-                        class_img_dict_query[img_class].append(img_name)
-            f_csv.close()
-
-
-            while e < episode_num:   # setting the episode number to 600
-
-                # construct each episode
-                episode = []
-                e += 1
-                temp_list = random.sample(class_list, way_num)
-                label_num = -1
-
-                for item in temp_list:
-                    label_num += 1
-                    imgs_set = class_img_dict[item]
-                    imgs_query_set = class_img_dict_query[item]
-                    support_imgs = random.sample(imgs_set, shot_num)
-                    query_imgs = random.sample(imgs_query_set, shot_num)
-
-                    if query_num<len(query_imgs):
-                        query_imgs = random.sample(query_imgs, query_num)
-
-
-                    # the dir of support set
-                    query_dir = [path.join(data_dir, i) for i in query_imgs]
-                    support_dir = [path.join(data_dir, i) for i in support_imgs]
-
-
-                    data_files = {
-                        "query_img": query_dir,
-                        "support_set": support_dir,
-                        "target": label_num
-                    }
-                    episode.append(data_files)
-                data_list.append(episode)
+        # else:
+        #
+        #     # store all the classes and images into a dict
+        #     class_img_dict = {}
+        #     with open(test_csv) as f_csv:
+        #         f_test = csv.reader(f_csv, delimiter=',')
+        #         for row in f_test:
+        #             if f_test.line_num == 1:
+        #                 continue
+        #             img_name, img_class = row
+        #
+        #             if img_class in class_img_dict:
+        #                 class_img_dict[img_class].append(img_name)
+        #             else:
+        #                 class_img_dict[img_class]=[]
+        #                 class_img_dict[img_class].append(img_name)
+        #     f_csv.close()
+        #     class_list = class_img_dict.keys()
+        #
+        #     class_img_dict_query = {}
+        #     with open(test_query_csv) as f_csv:
+        #         f_test_query = csv.reader(f_csv, delimiter=',')
+        #         for row in f_test_query:
+        #             if f_test_query.line_num == 1:
+        #                 continue
+        #             img_name, img_class = row
+        #
+        #             if img_class in class_img_dict_query:
+        #                 class_img_dict_query[img_class].append(img_name)
+        #             else:
+        #                 class_img_dict_query[img_class]=[]
+        #                 class_img_dict_query[img_class].append(img_name)
+        #     f_csv.close()
+        #
+        #
+        #     while e < episode_num:   # setting the episode number to 600
+        #
+        #         # construct each episode
+        #         episode = []
+        #         e += 1
+        #         temp_list = random.sample(class_list, way_num)
+        #         label_num = -1
+        #
+        #         for item in temp_list:
+        #             label_num += 1
+        #             imgs_set = class_img_dict[item]
+        #             imgs_query_set = class_img_dict_query[item]
+        #             support_imgs = random.sample(imgs_set, shot_num)
+        #             query_imgs = random.sample(imgs_query_set, shot_num)
+        #
+        #             if query_num<len(query_imgs):
+        #                 query_imgs = random.sample(query_imgs, query_num)
+        #
+        #
+        #             # the dir of support set
+        #             query_dir = [path.join(data_dir, i) for i in query_imgs]
+        #             support_dir = [path.join(data_dir, i) for i in support_imgs]
+        #
+        #
+        #             data_files = {
+        #                 "query_img": query_dir,
+        #                 "support_set": support_dir,
+        #                 "target": label_num
+        #             }
+        #             episode.append(data_files)
+        #         data_list.append(episode)
 
 
         self.data_list = data_list

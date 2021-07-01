@@ -459,10 +459,10 @@ for epoch_item in range(opt.epochs):
 		}, filename)
 
 	
-	# Testing Prase
-	print('============ Testing on the test set ============')
-	print('============ Testing on the test set ============', file=F_txt)
-	prec1, _ = validate(test_loader, model, criterion, epoch_item, best_prec1, F_txt)
+	# # Testing Prase
+	# print('============ Testing on the test set ============')
+	# print('============ Testing on the test set ============', file=F_txt)
+	# prec1, _ = validate(test_loader, model, criterion, epoch_item, best_prec1, F_txt)
 
 
 F_txt.close()
