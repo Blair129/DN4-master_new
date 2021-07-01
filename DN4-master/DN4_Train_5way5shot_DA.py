@@ -385,17 +385,17 @@ for epoch_item in range(opt.epochs):
 		data_dir=opt.dataset_dir, mode='val', image_size=opt.imageSize, transform=ImgTransform,
 		episode_num=opt.episode_val_num, way_num=opt.way_num, shot_num=opt.shot_num, query_num=opt.query_num
 	)
-	testset = Imagefolder_csv(
-		data_dir=opt.dataset_dir, mode='test', image_size=opt.imageSize, transform=ImgTransform,
-		episode_num=opt.episode_test_num, way_num=opt.way_num, shot_num=opt.shot_num, query_num=opt.query_num
-	)
+	# testset = Imagefolder_csv(
+	# 	data_dir=opt.dataset_dir, mode='test', image_size=opt.imageSize, transform=ImgTransform,
+	# 	episode_num=opt.episode_test_num, way_num=opt.way_num, shot_num=opt.shot_num, query_num=opt.query_num
+	# )
 
 	print('Trainset: %d' %len(trainset))
 	print('Valset: %d' %len(valset))
-	print('Testset: %d' %len(testset))
+	# print('Testset: %d' %len(testset))
 	print('Trainset: %d' %len(trainset), file=F_txt)
 	print('Valset: %d' %len(valset), file=F_txt)
-	print('Testset: %d' %len(testset), file=F_txt)
+	# print('Testset: %d' %len(testset), file=F_txt)
 
 
 
@@ -408,10 +408,10 @@ for epoch_item in range(opt.epochs):
 		valset, batch_size=opt.testepisodeSize, shuffle=True, 
 		num_workers=int(opt.workers), drop_last=True, pin_memory=True
 		) 
-	test_loader = torch.utils.data.DataLoader(
-		testset, batch_size=opt.testepisodeSize, shuffle=True, 
-		num_workers=int(opt.workers), drop_last=True, pin_memory=True
-		) 
+	# test_loader = torch.utils.data.DataLoader(
+	# 	testset, batch_size=opt.testepisodeSize, shuffle=True,
+	# 	num_workers=int(opt.workers), drop_last=True, pin_memory=True
+	# 	)
 
 
 	# ============================================ Training ===========================================
