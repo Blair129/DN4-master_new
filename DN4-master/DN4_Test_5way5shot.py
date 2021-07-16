@@ -122,7 +122,7 @@ def validate(val_loader, model, criterion, epoch_index, F_txt):
         prec1, _ = accuracy(output, target, topk=(1, 2))
         # print("prec1:" + str(prec1[0]))
         losses.update(loss.item(), query_images.size(0))
-        # top1.update(prec1[0], query_images.size(0))
+        top1.update(prec1[0], query_images.size(0))
         # print("top1:" + str(top1.avg))
         accuracies.append(prec1)
 

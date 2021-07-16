@@ -18,6 +18,25 @@ sys.dont_write_bytecode = True
 # Functions
 ###############################################################################
 
+from pytorch_msssim import ssim, ms_ssim, SSIM, MS_SSIM
+# X: (N,3,H,W) a batch of non-negative RGB images (0~255)
+# Y: (N,3,H,W)
+
+# calculate ssim & ms-ssim for each image
+ssim_val = ssim( X, Y, data_range=255, size_average=False) # return (N,)
+ms_ssim_val = ms_ssim( X, Y, data_range=255, size_average=False ) #(N,)
+
+# set 'size_average=True' to get a scalar value as loss. see tests/tests_loss.py for more details
+ssim_loss = 1 - ssim( X, Y, data_range=255, size_average=True) # return a scalar
+ms_ssim_loss = 1 - ms_ssim( X, Y, data_range=255, size_average=True )
+
+# reuse the gaussian kernel with SSIM & MS_SSIM.
+ssim_module = SSIM(data_range=255, size_average=True, channel=3)
+ms_ssim_module = MS_SSIM(data_range=255, size_average=True, channel=3)
+
+ssim_loss = 1 - ssim_module(X, Y)
+ms_ssim_loss = 1 - ms_ssim_module(X, Y)
+
 
 def weights_init_normal(m):
     classname = m.__class__.__name__
@@ -207,40 +226,34 @@ class ImgtoClass_Metric(nn.Module):
 
     # Calculate the k-Nearest Neighbor of each local descriptor
     def cal_cosinesimilarity(self, input1, input2):
-        B, C, h, w = input1.size()
+        B, C, h, w = input1.size() #15，64，21, 21
         Similarity_list = []
 
         for i in range(B):
-            query_sam = input1[i]
-            query_sam = query_sam.view(C, -1)
-            query_sam = torch.transpose(query_sam, 0, 1)
-            # print(query_sam.shape)
-            query_sam_norm = torch.norm(query_sam, 2, 1, True)
-            query_sam = query_sam/query_sam_norm
+            query_sam = input1[i] # 64*21*21
+            query_sam = query_sam.view(C, -1) # 64*441
+            query_sam = torch.transpose(query_sam, 0, 1)  # 441*64
+            query_sam_norm = torch.norm(query_sam, 2, 1, True) # calculate 2-norm for each row (ie. for each descriptor)
+            query_sam = query_sam/query_sam_norm  # normalization
 
             if torch.cuda.is_available():
-                inner_sim = torch.zeros(1, len(input2)).cuda()
-                # print("inner_sim"+str(inner_sim.shape))
+                inner_sim = torch.zeros(1, len(input2)).cuda() # 1*3
 
-            for j in range(len(input2)):
-                support_set_sam = input2[j]
-                # print(support_set_sam.shape)
-                support_set_sam_norm = torch.norm(support_set_sam, 2, 0, True)
-                support_set_sam = support_set_sam/support_set_sam_norm
+            for j in range(len(input2)):  # j = 0,1,2
+                support_set_sam = input2[j] #64*2205(5*441)
+                support_set_sam_norm = torch.norm(support_set_sam, 2, 0, True) # calculate 2-norm for each column(ie. for each descriptor)
+                support_set_sam = support_set_sam/support_set_sam_norm  # normalization
 
                 # cosine similarity between a query sample and a support category
-                innerproduct_matrix = query_sam@support_set_sam
-                # print("innerproduct"+str(innerproduct_matrix.shape))
+                innerproduct_matrix = query_sam@support_set_sam # 441*2205
 
                 # choose the top-k nearest neighbors
-                topk_value, topk_index = torch.topk(innerproduct_matrix, self.neighbor_k, 1)
-                # print(topk_value, topk_index)
-                inner_sim[0, j] = torch.sum(topk_value)
+                topk_value, topk_index = torch.topk(innerproduct_matrix, self.neighbor_k, 1) #441*3
+                inner_sim[0, j] = torch.sum(topk_value)  # sum mk value
 
             Similarity_list.append(inner_sim)
 
-        Similarity_list = torch.cat(Similarity_list, 0)
-        # print(Similarity_list.shape)
+        Similarity_list = torch.cat(Similarity_list, 0)  # 15*3 (3 classes)
 
         return Similarity_list
 
@@ -286,40 +299,34 @@ class ImgtoClass_Metric(nn.Module):
 
 
     def cal_SSIM(self, input1, input2):
-        B, C, h, w = input1.size()
+        B, C, h, w = input1.size() #15，64，21, 21
         Similarity_list = []
 
         for i in range(B):
-            query_sam = input1[i]
-            query_sam = query_sam.view(C, -1)
-            query_sam = torch.transpose(query_sam, 0, 1)
-            print(query_sam.shape)
-            query_sam_norm = torch.norm(query_sam, 2, 1, True)
-            query_sam = query_sam/query_sam_norm
+            query_sam = input1[i] # 64*21*21
+            query_sam = query_sam.view(C, -1) # 64*441
+            query_sam = torch.transpose(query_sam, 0, 1)  # 441*64
+            query_sam_norm = torch.norm(query_sam, 2, 1, True) # calculate 2-norm for each row (ie. for each descriptor)
+            query_sam = query_sam/query_sam_norm  # normalization
 
             if torch.cuda.is_available():
-                inner_sim = torch.zeros(1, len(input2)).cuda()
-                # print("inner_sim"+str(inner_sim.shape))
+                inner_sim = torch.zeros(1, len(input2)).cuda() # 1*3
 
-            for j in range(len(input2)):
-                support_set_sam = input2[j]
-                # print(support_set_sam.shape)
-                support_set_sam_norm = torch.norm(support_set_sam, 2, 0, True)
-                support_set_sam = support_set_sam/support_set_sam_norm
+            for j in range(len(input2)):  # j = 0,1,2
+                support_set_sam = input2[j] #64*2205(5*441)
+                support_set_sam_norm = torch.norm(support_set_sam, 2, 0, True) # calculate 2-norm for each column(ie. for each descriptor)
+                support_set_sam = support_set_sam/support_set_sam_norm  # normalization
 
                 # cosine similarity between a query sample and a support category
-                innerproduct_matrix = query_sam@support_set_sam
-                # print("innerproduct"+str(innerproduct_matrix.shape))
+                innerproduct_matrix = query_sam@support_set_sam # 441*2205
 
                 # choose the top-k nearest neighbors
-                topk_value, topk_index = torch.topk(innerproduct_matrix, self.neighbor_k, 1)
-                # print(topk_value, topk_index)
-                inner_sim[0, j] = torch.sum(topk_value)
+                topk_value, topk_index = torch.topk(innerproduct_matrix, self.neighbor_k, 1) #441*3
+                inner_sim[0, j] = torch.sum(topk_value)  # sum mk value
 
             Similarity_list.append(inner_sim)
 
-        Similarity_list = torch.cat(Similarity_list, 0)
-        # print(Similarity_list.shape)
+        Similarity_list = torch.cat(Similarity_list, 0)  # 15*3 (3 classes)
 
         return Similarity_list
 
