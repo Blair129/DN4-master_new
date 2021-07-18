@@ -94,7 +94,11 @@ def validate(val_loader, model, criterion, epoch_index, F_txt):
 
     # switch to evaluate mode
     model.eval()
+
     accuracies = []
+    accuracies0 = []
+    accuracies1 = []
+    accuracies2 = []
 
     end = time.time()
     for episode_index, (query_images, query_targets, support_images, support_targets) in enumerate(val_loader):
@@ -119,12 +123,14 @@ def validate(val_loader, model, criterion, epoch_index, F_txt):
         loss = criterion(output, target)
 
         # measure accuracy and record loss
-        prec1, _ = accuracy(output, target, topk=(1, 2))
+        prec1, acc_each = accuracy(output, target, topk=(1,))
         # print("prec1:" + str(prec1[0]))
         losses.update(loss.item(), query_images.size(0))
-        top1.update(prec1[0], query_images.size(0))
-        # print("top1:" + str(top1.avg))
-        accuracies.append(prec1)
+        top1.update(prec1[0][0], query_images.size(0))
+        accuracies.append(prec1[0])
+        accuracies0.append(acc_each[0])
+        accuracies1.append(acc_each[1])
+        accuracies2.append(acc_each[2])
 
         # measure elapsed time
         batch_time.update(time.time() - end)
@@ -143,11 +149,12 @@ def validate(val_loader, model, criterion, epoch_index, F_txt):
                   'Loss {loss.val:.3f} ({loss.avg:.3f})\t'
                   'Prec@1 {top1.val:.3f} ({top1.avg:.3f})'.format(
                 epoch_index, episode_index, len(val_loader), batch_time=batch_time, loss=losses, top1=top1), file=F_txt)
-    print("top1:" + str(top1.avg))
+    # print("top1:" + str(top1.avg))
     print(' * Prec@1 {top1.avg:.3f} Best_prec1 {best_prec1:.3f}'.format(top1=top1, best_prec1=best_prec1))
     print(' * Prec@1 {top1.avg:.3f} Best_prec1 {best_prec1:.3f}'.format(top1=top1, best_prec1=best_prec1), file=F_txt)
+    accuracies_all = [accuracies, accuracies0, accuracies1, accuracies2]
 
-    return top1.avg, accuracies
+    return top1.avg, accuracies_all
 
 
 class AverageMeter(object):
@@ -174,17 +181,29 @@ def accuracy(output, target, topk=(1,)):
     with torch.no_grad():
         maxk = max(topk)
         batch_size = target.size(0)
+        acc_each_class = []
 
         _, pred = output.topk(maxk, 1, True, True)
         pred = pred.t()
 
         correct = pred.eq(target.view(1, -1).expand_as(pred))
+        # print()
+        # print(target)
+        # print("-------------")
+        # print(pred)
 
         res = []
         for k in topk:
             correct_k = correct[:k].reshape(-1).float().sum(0, keepdim=True)
             res.append(correct_k.mul_(100.0 / batch_size))
-        return res
+        # k = 1
+        # correct_k = correct[:k].reshape(-1).float().sum(0, keepdim=True)
+        # res.append(correct_k.mul_(100.0 / batch_size))
+
+        for i in range(opt.way_num):
+            acc = torch.sum(target[correct[0]] == i)
+            acc_each_class.append((acc * 100.0 / (batch_size / opt.way_num)).unsqueeze(0))
+        return res, acc_each_class
 
 
 def mean_confidence_interval(data, confidence=0.95):
@@ -251,11 +270,11 @@ print(model, file=F_txt)
 # ============================================ Testing phase ========================================
 print('\n............Start testing............')
 start_time = time.time()
-repeat_num = 5  # repeat running the testing code several times
+repeat_num = 2  # repeat running the testing code several times
 
-total_accuracy = 0.0
-total_h = np.zeros(repeat_num)
-total_accuracy_vector = []
+total_accuracy = np.zeros((opt.way_num + 1))
+total_h = np.zeros(((opt.way_num + 1), repeat_num))
+total_accuracy_vector = [[] for i in range(opt.way_num + 1)]
 for r in range(repeat_num):
     print('===================================== Round %d =====================================' % r)
     print('===================================== Round %d =====================================' % r, file=F_txt)
@@ -282,18 +301,20 @@ for r in range(repeat_num):
     )
 
     # =========================================== Evaluation ==========================================
-    prec1, accuracies = validate(test_loader, model, criterion, epoch_index, F_txt)
+    prec1, accuracies_all = validate(test_loader, model, criterion, epoch_index, F_txt)
 
-    test_accuracy, h = mean_confidence_interval(accuracies)
-    print("Test accuracy", test_accuracy, "h", h[0])
-    print("Test accuracy", test_accuracy, "h", h[0], file=F_txt)
-    total_accuracy += test_accuracy
-    total_accuracy_vector.extend(accuracies)
-    total_h[r] = h
-
-aver_accuracy, _ = mean_confidence_interval(total_accuracy_vector)
-print("Aver_accuracy:", aver_accuracy, "Aver_h", total_h.mean())
-print("Aver_accuracy:", aver_accuracy, "Aver_h", total_h.mean(), file=F_txt)
+    for i, acc in enumerate(accuracies_all):
+        test_accuracy, h = mean_confidence_interval(acc)
+        print("Test accuracy", test_accuracy, "h", h[0])
+        print("Test accuracy", test_accuracy, "h", h[0], file=F_txt)
+        total_accuracy[i] += test_accuracy
+        total_accuracy_vector[i].extend(acc)
+        total_h[i][r] = h
+print("----------------------------------------------------------------")
+for i in range(opt.way_num + 1):
+    aver_accuracy, _ = mean_confidence_interval(total_accuracy_vector[i])
+    print("Aver_accuracy:", aver_accuracy, "Aver_h", total_h[i].mean())
+    print("Aver_accuracy:", aver_accuracy, "Aver_h", total_h[i].mean(), file=F_txt)
 F_txt.close()
 
 # ============================================== Testing End ==========================================
