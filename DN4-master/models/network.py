@@ -23,19 +23,19 @@ from pytorch_msssim import ssim, ms_ssim, SSIM, MS_SSIM
 # Y: (N,3,H,W)
 
 # calculate ssim & ms-ssim for each image
-ssim_val = ssim( X, Y, data_range=255, size_average=False) # return (N,)
-ms_ssim_val = ms_ssim( X, Y, data_range=255, size_average=False ) #(N,)
-
-# set 'size_average=True' to get a scalar value as loss. see tests/tests_loss.py for more details
-ssim_loss = 1 - ssim( X, Y, data_range=255, size_average=True) # return a scalar
-ms_ssim_loss = 1 - ms_ssim( X, Y, data_range=255, size_average=True )
-
-# reuse the gaussian kernel with SSIM & MS_SSIM.
-ssim_module = SSIM(data_range=255, size_average=True, channel=3)
-ms_ssim_module = MS_SSIM(data_range=255, size_average=True, channel=3)
-
-ssim_loss = 1 - ssim_module(X, Y)
-ms_ssim_loss = 1 - ms_ssim_module(X, Y)
+# ssim_val = ssim( X, Y, data_range=255, size_average=False) # return (N,)
+# ms_ssim_val = ms_ssim( X, Y, data_range=255, size_average=False ) #(N,)
+# 
+# # set 'size_average=True' to get a scalar value as loss. see tests/tests_loss.py for more details
+# ssim_loss = 1 - ssim( X, Y, data_range=255, size_average=True) # return a scalar
+# ms_ssim_loss = 1 - ms_ssim( X, Y, data_range=255, size_average=True )
+#
+# # reuse the gaussian kernel with SSIM & MS_SSIM.
+# ssim_module = SSIM(data_range=255, size_average=True, channel=3)
+# ms_ssim_module = MS_SSIM(data_range=255, size_average=True, channel=3)
+#
+# ssim_loss = 1 - ssim_module(X, Y)
+# ms_ssim_loss = 1 - ms_ssim_module(X, Y)
 
 
 def weights_init_normal(m):
