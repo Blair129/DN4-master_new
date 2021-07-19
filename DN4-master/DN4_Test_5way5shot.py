@@ -41,6 +41,7 @@ import pdb
 # ============================ Data & Networks =====================================
 from dataset.datasets_csv import Imagefolder_csv
 import models.network as DN4Net
+import models.network_ssim as DN4Net
 
 # ==================================================================================
 

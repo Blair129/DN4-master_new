@@ -5,20 +5,22 @@ import functools
 import pdb
 import math
 import sys
+
 sys.dont_write_bytecode = True
 
 ''' 
-	
+
 	This Network is designed for Few-Shot Learning Problem. 
 
 '''
-
 
 ###############################################################################
 # Functions
 ###############################################################################
 
 from pytorch_msssim import ssim, ms_ssim, SSIM, MS_SSIM
+
+
 # X: (N,3,H,W) a batch of non-negative RGB images (0~255)
 # Y: (N,3,H,W)
 
@@ -112,18 +114,18 @@ def get_norm_layer(norm_type='instance'):
     return norm_layer
 
 
-
-def define_DN4Net(pretrained=False, model_root=None, which_model='Conv64', norm='batch', init_type='normal', use_gpu=True, **kwargs):
+def define_DN4Net(pretrained=False, model_root=None, which_model='Conv64', norm='batch', init_type='normal',
+                  use_gpu=True, **kwargs):
     DN4Net = None
     norm_layer = get_norm_layer(norm_type=norm)
 
     if use_gpu:
-        assert(torch.cuda.is_available())
+        assert (torch.cuda.is_available())
 
     if which_model == 'Conv64F':
         DN4Net = FourLayer_64F(norm_layer=norm_layer, **kwargs)
     elif which_model == 'ResNet256F':
-        net_opt = {'userelu': False, 'in_planes':3, 'dropout':0.5, 'norm_layer': norm_layer}
+        net_opt = {'userelu': False, 'in_planes': 3, 'dropout': 0.5, 'norm_layer': norm_layer}
         DN4Net = ResNetLike(net_opt)
     else:
         raise NotImplementedError('Model name [%s] is not recognized' % which_model)
@@ -146,14 +148,13 @@ def print_network(net):
     print('Total number of parameters: %d' % num_params)
 
 
-
 ##############################################################################
 # Classes: FourLayer_64F
 ##############################################################################
 
-# Model: FourLayer_64F 
+# Model: FourLayer_64F
 # Input: One query image and a support set
-# Base_model: 4 Convolutional layers --> Image-to-Class layer  
+# Base_model: 4 Convolutional layers --> Image-to-Class layer
 # Dataset: 3 x 84 x 84, for miniImageNet
 # Filters: 64->64->64->64
 # Mapping Sizes: 84->42->21->21->21
@@ -168,29 +169,27 @@ class FourLayer_64F(nn.Module):
         else:
             use_bias = norm_layer == nn.InstanceNorm2d
 
-        self.features = nn.Sequential(                              # 3*84*84
+        self.features = nn.Sequential(  # 3*84*84
             nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=use_bias),
             norm_layer(64),
             nn.LeakyReLU(0.2, True),
-            nn.MaxPool2d(kernel_size=2, stride=2),                  # 64*42*42
+            nn.MaxPool2d(kernel_size=2, stride=2),  # 64*42*42
 
             nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1, bias=use_bias),
             norm_layer(64),
             nn.LeakyReLU(0.2, True),
-            nn.MaxPool2d(kernel_size=2, stride=2),                  # 64*21*21
+            nn.MaxPool2d(kernel_size=2, stride=2),  # 64*21*21
 
             nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1, bias=use_bias),
             norm_layer(64),
-            nn.LeakyReLU(0.2, True),                                # 64*21*21
+            nn.LeakyReLU(0.2, True),  # 64*21*21
 
             nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1, bias=use_bias),
             norm_layer(64),
-            nn.LeakyReLU(0.2, True),                                # 64*21*21
+            nn.LeakyReLU(0.2, True),  # 64*21*21
         )
 
         self.imgtoclass = ImgtoClass_Metric(neighbor_k=neighbor_k)  # 1*num_classes
-
-
 
     def forward(self, input1, input2):
 
@@ -202,21 +201,20 @@ class FourLayer_64F(nn.Module):
         S = []
         for i in range(len(input2)):
             support_set_sam = self.features(input2[i])
-            # print(support_set_sam.shape)
-            B, C, h, w = support_set_sam.size()
-            support_set_sam = support_set_sam.permute(1, 0, 2, 3)
-            support_set_sam = support_set_sam.contiguous().view(C, -1)
+            # # print(support_set_sam.shape)
+            # B, C, h, w = support_set_sam.size()
+            # support_set_sam = support_set_sam.permute(1, 0, 2, 3)
+            # support_set_sam = support_set_sam.contiguous().view(C, -1)
 
             S.append(support_set_sam)
 
         # print("-----------------"+str(len(S)))
-        x = self.imgtoclass(q, S) # get Batch*num_classes
+        x = self.imgtoclass(q, S)  # get Batch*num_classes
 
         return x
 
 
-
-#========================== Define an image-to-class layer ==========================#
+# ========================== Define an image-to-class layer ==========================#
 
 
 class ImgtoClass_Metric(nn.Module):
@@ -224,134 +222,55 @@ class ImgtoClass_Metric(nn.Module):
         super(ImgtoClass_Metric, self).__init__()
         self.neighbor_k = neighbor_k
 
-
-    # Calculate the k-Nearest Neighbor of each local descriptor
-    def cal_cosinesimilarity(self, input1, input2):
-        B, C, h, w = input1.size() #15，64，21, 21
-        Similarity_list = []
-
-        for i in range(B):
-            query_sam = input1[i] # 64*21*21
-            query_sam = query_sam.view(C, -1) # 64*441
-            query_sam = torch.transpose(query_sam, 0, 1)  # 441*64
-            query_sam_norm = torch.norm(query_sam, 2, 1, True) # calculate 2-norm for each row (ie. for each descriptor)
-            query_sam = query_sam/query_sam_norm  # normalization
-
-            if torch.cuda.is_available():
-                inner_sim = torch.zeros(1, len(input2)).cuda() # 1*3
-
-            for j in range(len(input2)):  # j = 0,1,2
-                support_set_sam = input2[j] #64*2205(5*441)
-                support_set_sam_norm = torch.norm(support_set_sam, 2, 0, True) # calculate 2-norm for each column(ie. for each descriptor)
-                support_set_sam = support_set_sam/support_set_sam_norm  # normalization
-
-                # cosine similarity between a query sample and a support category
-                innerproduct_matrix = query_sam@support_set_sam # 441*2205
-
-                # choose the top-k nearest neighbors
-                topk_value, topk_index = torch.topk(innerproduct_matrix, self.neighbor_k, 1) #441*3
-                inner_sim[0, j] = torch.sum(topk_value)  # sum mk value
-
-            Similarity_list.append(inner_sim)
-
-        Similarity_list = torch.cat(Similarity_list, 0)  # 15*3 (3 classes)
-
-        return Similarity_list
-
-
-    def cal_euclideandistance(self, input1, input2):
-        B, C, h, w = input1.size()
-        Similarity_list = []
-
-        for i in range(B):
-            query_sam = input1[i]
-            query_sam = query_sam.view(C, -1)
-            query_sam = torch.transpose(query_sam, 0, 1)
-            # print(query_sam.shape)
-            # query_sam_norm = torch.norm(query_sam, 2, 1, True)
-            # query_sam = query_sam/query_sam_norm
-
-            if torch.cuda.is_available():
-                inner_sim = torch.zeros(1, len(input2)).cuda()
-                # print("inner_sim"+str(inner_sim.shape))
-
-            for j in range(len(input2)):
-                support_set_sam = input2[j]
-                # print(support_set_sam.shape)
-                support_set_sam = torch.transpose(support_set_sam, 0, 1)
-                # support_set_sam_norm = torch.norm(support_set_sam, 2, 0, True)
-                # support_set_sam = support_set_sam/support_set_sam_norm
-
-                # euclidean distance between a query sample and a support category
-                innerproduct_matrix = torch.cdist(query_sam, support_set_sam, p=2)
-                # print("innerproduct"+str(innerproduct_matrix.shape))
-
-                # choose the top-k nearest neighbors
-                topk_value, topk_index = torch.topk(innerproduct_matrix, self.neighbor_k, 1, largest= False)
-                # print(topk_value, topk_index)
-                inner_sim[0, j] = torch.sum(topk_value)
-
-            Similarity_list.append(inner_sim)
-
-        Similarity_list = torch.cat(Similarity_list, 0)
-        # print(Similarity_list.shape)
-
-        return Similarity_list
-
-
     def cal_SSIM(self, input1, input2):
-        B, C, h, w = input1.size() #15，64，21, 21
+        B, C, h, w = input1.size()  # 15，64，21, 21
         Similarity_list = []
 
         for i in range(B):
-            query_sam = input1[i] # 64*21*21
-            query_sam_norm = torch.norm(query_sam, 2, 0,
-                                        True)
-            query_sam = query_sam/query_sam_norm
+            query_sam = input1[i]  # 64*21*21
+            query_sam_norm = torch.norm(query_sam, 2, 0, True)
+            query_sam = (query_sam / query_sam_norm).unsqueeze(0)
+            query_sam = query_sam.repeat(5, 1, 1, 1)
+
 
             if torch.cuda.is_available():
-                inner_sim = torch.zeros(1, len(input2)).cuda() # 1*3
+                inner_sim = torch.zeros(1, len(input2)).cuda()  # 1*3
 
             for j in range(len(input2)):  # j = 0,1,2
-                support_set_sam = input2[j] #64*2205(5*441)
-                support_set_sam = support_set_sam.reshape(64, 441, 5)
-                support_set_sam_norm = torch.norm(support_set_sam, 2, 0, True) # calculate 2-norm for each column(ie. for each descriptor)
-                support_set_sam = support_set_sam/support_set_sam_norm  # normalization
+                support_set_sam = input2[j]  # 5*64*21*21
+                support_set_sam_norm = torch.norm(support_set_sam, 2, 1, True)
+                support_set_sam = support_set_sam / support_set_sam_norm  # normalization
 
                 # cosine similarity between a query sample and a support category
-                innerproduct_matrix = query_sam@support_set_sam # 441*2205
+                innerproduct_matrix = ssim(query_sam, support_set_sam, data_range=255, size_average=False)
 
                 # choose the top-k nearest neighbors
-                topk_value, topk_index = torch.topk(innerproduct_matrix, self.neighbor_k, 1) #441*3
-                inner_sim[0, j] = torch.sum(topk_value)  # sum mk value
+                # topk_value, topk_index = torch.topk(innerproduct_matrix, self.neighbor_k, 1)  # 441*3
+                inner_sim[0, j] = torch.sum(innerproduct_matrix)  # sum mk value
 
             Similarity_list.append(inner_sim)
 
         Similarity_list = torch.cat(Similarity_list, 0)  # 15*3 (3 classes)
 
         return Similarity_list
-
 
     def forward(self, x1, x2):
 
-        Similarity_list = self.cal_cosinesimilarity(x1, x2)
+        Similarity_list = self.cal_SSIM(x1, x2)
 
         return Similarity_list
-
-
 
 
 ##############################################################################
 # Classes: ResNetLike
 ##############################################################################
 
-# Model: ResNetLike 
+# Model: ResNetLike
 # Refer to: https://github.com/gidariss/FewShotWithoutForgetting
 # Input: One query image and a support set
-# Base_model: 4 ResBlock layers --> Image-to-Class layer  
+# Base_model: 4 ResBlock layers --> Image-to-Class layer
 # Dataset: 3 x 84 x 84, for miniImageNet
 # Filters: 64->96->128->256
-
 
 
 class ResBlock(nn.Module):
@@ -361,7 +280,7 @@ class ResBlock(nn.Module):
         self.conv_block = nn.Sequential()
         self.conv_block.add_module('BNorm1', nn.BatchNorm2d(nFin))
         self.conv_block.add_module('LRelu1', nn.LeakyReLU(0.2))
-        self.conv_block.add_module('ConvL1', nn.Conv2d(nFin,  nFout, kernel_size=3, padding=1, bias=False))
+        self.conv_block.add_module('ConvL1', nn.Conv2d(nFin, nFout, kernel_size=3, padding=1, bias=False))
         self.conv_block.add_module('BNorm2', nn.BatchNorm2d(nFout))
         self.conv_block.add_module('LRelu2', nn.LeakyReLU(0.2))
         self.conv_block.add_module('ConvL2', nn.Conv2d(nFout, nFout, kernel_size=3, padding=1, bias=False))
@@ -371,10 +290,8 @@ class ResBlock(nn.Module):
 
         self.skip_layer = nn.Conv2d(nFin, nFout, kernel_size=1, stride=1)
 
-
     def forward(self, x):
         return self.skip_layer(x) + self.conv_block(x)
-
 
 
 class ResNetLike(nn.Module):
@@ -390,13 +307,12 @@ class ResNetLike(nn.Module):
         else:
             use_bias = opt['norm_layer'] == nn.InstanceNorm2d
 
-
         if type(self.out_planes) == int:
             self.out_planes = [self.out_planes for i in range(self.num_stages)]
 
-        assert(type(self.out_planes)==list)
-        assert(len(self.out_planes)==self.num_stages)
-        num_planes = [self.out_planes[0],] + self.out_planes
+        assert (type(self.out_planes) == list)
+        assert (len(self.out_planes) == self.num_stages)
+        num_planes = [self.out_planes[0], ] + self.out_planes
         userelu = opt['userelu'] if ('userelu' in opt) else False
         dropout = opt['dropout'] if ('dropout' in opt) else 0
 
@@ -404,15 +320,13 @@ class ResNetLike(nn.Module):
         self.feat_extractor.add_module('ConvL0', nn.Conv2d(self.in_planes, num_planes[0], kernel_size=3, padding=1))
 
         for i in range(self.num_stages):
-            self.feat_extractor.add_module('ResBlock'+str(i), ResBlock(num_planes[i], num_planes[i+1]))
-            if i<self.num_stages-2:
-                self.feat_extractor.add_module('MaxPool'+str(i), nn.MaxPool2d(kernel_size=2, stride=2, padding=0))
+            self.feat_extractor.add_module('ResBlock' + str(i), ResBlock(num_planes[i], num_planes[i + 1]))
+            if i < self.num_stages - 2:
+                self.feat_extractor.add_module('MaxPool' + str(i), nn.MaxPool2d(kernel_size=2, stride=2, padding=0))
 
-        self.feat_extractor.add_module('ReluF1', nn.LeakyReLU(0.2, True))                # get Batch*256*21*21
+        self.feat_extractor.add_module('ReluF1', nn.LeakyReLU(0.2, True))  # get Batch*256*21*21
 
-
-        self.imgtoclass = ImgtoClass_Metric(neighbor_k=neighbor_k)    # Batch*num_classes
-
+        self.imgtoclass = ImgtoClass_Metric(neighbor_k=neighbor_k)  # Batch*num_classes
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -421,7 +335,6 @@ class ResNetLike(nn.Module):
             elif isinstance(m, nn.BatchNorm2d):
                 m.weight.data.fill_(1)
                 m.bias.data.zero_()
-
 
     def forward(self, input1, input2):
 
@@ -437,7 +350,6 @@ class ResNetLike(nn.Module):
             support_set_sam = support_set_sam.contiguous().view(C, -1)
             S.append(support_set_sam)
 
-
-        x = self.imgtoclass(q, S)   # get Batch*num_classes
+        x = self.imgtoclass(q, S)  # get Batch*num_classes
 
         return x
