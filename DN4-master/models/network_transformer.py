@@ -285,7 +285,6 @@ class FourLayer_64F(nn.Module):
 
         # print("-----------------"+str(len(S)))
         x = self.imgtoclass(q_trans, S)  # get Batch*num_classes
-
         return x
 
 
