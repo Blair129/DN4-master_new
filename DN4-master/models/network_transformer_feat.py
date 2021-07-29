@@ -254,7 +254,7 @@ class FourLayer_64F(nn.Module):
             nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1, bias=use_bias),
             norm_layer(64),
             nn.LeakyReLU(0.2, True),  # 64*21*21
-            nn.MaxPool2d(kernel_size=2, stride=2), # 64*10*10
+            nn.MaxPool2d(kernel_size=2, stride=2),  # 64*10*10
 
             nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1, bias=use_bias),
             norm_layer(64),
@@ -262,7 +262,7 @@ class FourLayer_64F(nn.Module):
             nn.MaxPool2d(kernel_size=2, stride=2),  # 64*5*5
         )
 
-        # self.slf_attn = MultiHeadAttention(1, 64, 64, 64, dropout=0.5)
+        self.slf_attn = MultiHeadAttention(1, 64, 64, 64, dropout=0.5)
         self.imgtoclass = ImgtoClass_Metric(neighbor_k=neighbor_k)  # 1*num_classes
 
     def forward(self, input1, input2):
@@ -272,19 +272,17 @@ class FourLayer_64F(nn.Module):
         q = q.view(q.size(0), -1)
 
         # extract features of input2--support set
-        S = []
+        S = torch.zeros((3, 64)).cuda()
         for i in range(len(input2)):
             support_set_sam_feature_map = self.features(input2[i])
             support_set_sam = nn.MaxPool2d(5)(support_set_sam_feature_map)
-            support_set_sam = support_set_sam.mean(dim=0)
-            support_set_sam = support_set_sam.squeeze().view(support_set_sam.size(0), -1)
+            support_set_sam = support_set_sam.view(support_set_sam.size(0), -1)
 
-            # print(support_set_sam.shape)
-            support_set_sam_trans = self.slf_attn(support_set_sam, support_set_sam, support_set_sam)
+            support_set_sam = support_set_sam.mean(dim=0, keepdim=True)
 
-
-            S.append(support_set_sam_trans)
-
+            S[i, :] = support_set_sam
+        S = S.unsqueeze(0)
+        S = self.slf_attn(S, S, S)
         # print("-----------------"+str(len(S)))
         x = self.imgtoclass(q, S)  # get Batch*num_classes
         return x
@@ -300,32 +298,29 @@ class ImgtoClass_Metric(nn.Module):
 
     # Calculate the k-Nearest Neighbor of each local descriptor
     def cal_cosinesimilarity(self, input1, input2):
-        B, C, h, w = input1.size()  # 15，64，21, 21
+        B, C = input1.size()  # 15，64
         Similarity_list = []
 
         for i in range(B):
-            query_sam = input1[i]  # 64*21*21
-            query_sam = query_sam.view(C, -1)  # 64*441
-            query_sam = torch.transpose(query_sam, 0, 1)  # 441*64
+            query_sam = input1[i].unsqueeze(0)  # 1*64
             query_sam_norm = torch.norm(query_sam, 2, 1,
                                         True)  # calculate 2-norm for each row (ie. for each descriptor)
             query_sam = query_sam / query_sam_norm  # normalization
 
             if torch.cuda.is_available():
-                inner_sim = torch.zeros(1, len(input2)).cuda()  # 1*3
+                inner_sim = torch.zeros(1, 3).cuda()  # 1*3
 
-            for j in range(len(input2)):  # j = 0,1,2
-                support_set_sam = input2[j]  # 64*2205(5*441)
+            input2 = input2.squeeze() # 3*64
+            for j in range(3):  # j = 0,1,2
+                support_set_sam = input2[j].unsqueeze(-1)  # 64*1
                 support_set_sam_norm = torch.norm(support_set_sam, 2, 0,
                                                   True)  # calculate 2-norm for each column(ie. for each descriptor)
                 support_set_sam = support_set_sam / support_set_sam_norm  # normalization
 
                 # cosine similarity between a query sample and a support category
-                innerproduct_matrix = query_sam @ support_set_sam  # 441*2205
+                innerproduct_matrix = query_sam @ support_set_sam  # 1
 
-                # choose the top-k nearest neighbors
-                topk_value, topk_index = torch.topk(innerproduct_matrix, self.neighbor_k, 1)  # 441*3
-                inner_sim[0, j] = torch.sum(topk_value)  # sum mk value
+                inner_sim[0, j] = innerproduct_matrix
 
             Similarity_list.append(inner_sim)
 
