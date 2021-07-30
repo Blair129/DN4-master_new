@@ -271,7 +271,7 @@ print(model, file=F_txt)
 # ============================================ Testing phase ========================================
 print('\n............Start testing............')
 start_time = time.time()
-repeat_num = 2  # repeat running the testing code several times
+repeat_num = 5  # repeat running the testing code several times
 
 total_accuracy = np.zeros((opt.way_num + 1))
 total_h = np.zeros(((opt.way_num + 1), repeat_num))

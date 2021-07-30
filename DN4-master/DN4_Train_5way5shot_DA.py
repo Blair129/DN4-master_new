@@ -64,7 +64,7 @@ parser.add_argument('--imageSize', type=int, default=84)
 parser.add_argument('--episodeSize', type=int, default=1, help='the mini-batch size of training')
 parser.add_argument('--testepisodeSize', type=int, default=1, help='one episode is taken as a mini-batch')
 parser.add_argument('--epochs', type=int, default=30, help='the total number of training epoch')
-parser.add_argument('--episode_train_num', type=int, default=2000, help='the total number of training episodes')
+parser.add_argument('--episode_train_num', type=int, default=5000, help='the total number of training episodes')
 parser.add_argument('--episode_val_num', type=int, default=1000, help='the total number of evaluation episodes')
 parser.add_argument('--episode_test_num', type=int, default=1000, help='the total number of testing episodes')
 parser.add_argument('--way_num', type=int, default=5, help='the number of way/class')
@@ -351,8 +351,9 @@ for epoch_item in range(opt.epochs):
     ImgTransform_DA = transforms.Compose([
         transforms.Resize((100, 100)),
         transforms.RandomCrop(84),
-        transforms.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.4),
+        transforms.RandomRotation((-270, 270)),
         transforms.RandomHorizontalFlip(),
+        transforms.RandomVerticalFlip(),
         transforms.ToTensor(),
         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
     ])
@@ -365,10 +366,10 @@ for epoch_item in range(opt.epochs):
         data_dir=opt.dataset_dir, mode='val', image_size=opt.imageSize, transform=ImgTransform,
         episode_num=opt.episode_val_num, way_num=opt.way_num, shot_num=opt.shot_num, query_num=opt.query_num
     )
-    # testset = Imagefolder_csv(
-    # 	data_dir=opt.dataset_dir, mode='test', image_size=opt.imageSize, transform=ImgTransform,
-    # 	episode_num=opt.episode_test_num, way_num=opt.way_num, shot_num=opt.shot_num, query_num=opt.query_num
-    # )
+    testset = Imagefolder_csv(
+    	data_dir=opt.dataset_dir, mode='test', image_size=opt.imageSize, transform=ImgTransform,
+    	episode_num=opt.episode_test_num, way_num=opt.way_num, shot_num=opt.shot_num, query_num=opt.query_num
+    )
 
     print('Trainset: %d' % len(trainset))
     print('Valset: %d' % len(valset))
@@ -386,10 +387,10 @@ for epoch_item in range(opt.epochs):
         valset, batch_size=opt.testepisodeSize, shuffle=True,
         num_workers=int(opt.workers), drop_last=True, pin_memory=True
     )
-    # test_loader = torch.utils.data.DataLoader(
-    # 	testset, batch_size=opt.testepisodeSize, shuffle=True,
-    # 	num_workers=int(opt.workers), drop_last=True, pin_memory=True
-    # 	)
+    test_loader = torch.utils.data.DataLoader(
+    	testset, batch_size=opt.testepisodeSize, shuffle=True,
+    	num_workers=int(opt.workers), drop_last=True, pin_memory=True
+    	)
 
     # ============================================ Training ===========================================
     # Fix the parameters of Batch Normalization after 10000 episodes (1 epoch)
@@ -432,10 +433,10 @@ for epoch_item in range(opt.epochs):
                 'optimizer': optimizer.state_dict(),
             }, filename)
 
-# # Testing Prase
-# print('============ Testing on the test set ============')
-# print('============ Testing on the test set ============', file=F_txt)
-# prec1, _ = validate(test_loader, model, criterion, epoch_item, best_prec1, F_txt)
+    # Testing Prase
+    print('============ Testing on the test set ============')
+    print('============ Testing on the test set ============', file=F_txt)
+    prec1, _ = validate(test_loader, model, criterion, epoch_item, best_prec1, F_txt)
 
 
 F_txt.close()
