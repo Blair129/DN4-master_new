@@ -20,26 +20,6 @@ sys.dont_write_bytecode = True
 
 from pytorch_msssim import ssim, ms_ssim, SSIM, MS_SSIM
 
-
-# X: (N,3,H,W) a batch of non-negative RGB images (0~255)
-# Y: (N,3,H,W)
-
-# calculate ssim & ms-ssim for each image
-# ssim_val = ssim( X, Y, data_range=255, size_average=False) # return (N,)
-# ms_ssim_val = ms_ssim( X, Y, data_range=255, size_average=False ) #(N,)
-#
-# # set 'size_average=True' to get a scalar value as loss. see tests/tests_loss.py for more details
-# ssim_loss = 1 - ssim( X, Y, data_range=255, size_average=True) # return a scalar
-# ms_ssim_loss = 1 - ms_ssim( X, Y, data_range=255, size_average=True )
-#
-# # reuse the gaussian kernel with SSIM & MS_SSIM.
-# ssim_module = SSIM(data_range=255, size_average=True, channel=3)
-# ms_ssim_module = MS_SSIM(data_range=255, size_average=True, channel=3)
-#
-# ssim_loss = 1 - ssim_module(X, Y)
-# ms_ssim_loss = 1 - ms_ssim_module(X, Y)
-
-
 def weights_init_normal(m):
     classname = m.__class__.__name__
     # print(classname)
@@ -201,14 +181,8 @@ class FourLayer_64F(nn.Module):
         S = []
         for i in range(len(input2)):
             support_set_sam = self.features(input2[i])
-            # # print(support_set_sam.shape)
-            # B, C, h, w = support_set_sam.size()
-            # support_set_sam = support_set_sam.permute(1, 0, 2, 3)
-            # support_set_sam = support_set_sam.contiguous().view(C, -1)
-
             S.append(support_set_sam)
 
-        # print("-----------------"+str(len(S)))
         x = self.imgtoclass(q, S)  # get Batch*num_classes
 
         return x
@@ -241,11 +215,9 @@ class ImgtoClass_Metric(nn.Module):
                 support_set_sam_norm = torch.norm(support_set_sam, 2, 1, True)
                 support_set_sam = support_set_sam / support_set_sam_norm  # normalization
 
-                # cosine similarity between a query sample and a support category
+                # ssim similarity between a query sample and a support category
                 innerproduct_matrix = ssim(query_sam, support_set_sam, data_range=1, size_average=False)
 
-                # choose the top-k nearest neighbors
-                # topk_value, topk_index = torch.topk(innerproduct_matrix, self.neighbor_k, 1)  # 441*3
                 inner_sim[0, j] = torch.sum(innerproduct_matrix)  # sum mk value
 
             Similarity_list.append(inner_sim)

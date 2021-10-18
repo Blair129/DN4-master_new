@@ -2,11 +2,13 @@ import torch
 import torch.nn as nn
 from torch.nn import init
 import torch.nn.functional as F
+from torch.autograd import Variable
 import functools
 import pdb
 import math
 import sys
 import numpy as np
+from pytorch_msssim import ssim, ms_ssim, SSIM, MS_SSIM
 
 sys.dont_write_bytecode = True
 
@@ -19,28 +21,6 @@ sys.dont_write_bytecode = True
 ###############################################################################
 # Functions
 ###############################################################################
-
-from pytorch_msssim import ssim, ms_ssim, SSIM, MS_SSIM
-
-
-# X: (N,3,H,W) a batch of non-negative RGB images (0~255)
-# Y: (N,3,H,W)
-
-# calculate ssim & ms-ssim for each image
-# ssim_val = ssim( X, Y, data_range=255, size_average=False) # return (N,)
-# ms_ssim_val = ms_ssim( X, Y, data_range=255, size_average=False ) #(N,)
-#
-# # set 'size_average=True' to get a scalar value as loss. see tests/tests_loss.py for more details
-# ssim_loss = 1 - ssim( X, Y, data_range=255, size_average=True) # return a scalar
-# ms_ssim_loss = 1 - ms_ssim( X, Y, data_range=255, size_average=True )
-#
-# # reuse the gaussian kernel with SSIM & MS_SSIM.
-# ssim_module = SSIM(data_range=255, size_average=True, channel=3)
-# ms_ssim_module = MS_SSIM(data_range=255, size_average=True, channel=3)
-#
-# ssim_loss = 1 - ssim_module(X, Y)
-# ms_ssim_loss = 1 - ms_ssim_module(X, Y)
-
 
 def weights_init_normal(m):
     classname = m.__class__.__name__
@@ -148,6 +128,27 @@ def print_network(net):
         num_params += param.numel()
     print(net)
     print('Total number of parameters: %d' % num_params)
+
+class PositionalEncoding(nn.Module):
+  def __init__(self, d_model, dropout, max_len=5000):
+    super(PositionalEncoding, self).__init__()
+    self.dropout = nn.Dropout(p=dropout)
+
+    # Compute the positional encodings once in log space.
+    pe = torch.zeros(max_len, d_model)
+
+    position = torch.arange(0, max_len).unsqueeze(1)
+
+    div_term = torch.exp(torch.arange(0, d_model, 2) *
+      -(math.log(10000.0) / d_model))
+
+    pe[:, 0::2] = torch.sin(position * div_term)
+    pe[:, 1::2] = torch.cos(position * div_term)
+    pe = pe.unsqueeze(0)
+    self.register_buffer('pe', pe)
+  def forward(self, x):
+    x = x + Variable(self.pe[:, :x.size(1)], requires_grad=False)
+    return self.dropout(x)
 
 
 class ScaledDotProductAttention(nn.Module):
@@ -259,36 +260,30 @@ class FourLayer_64F(nn.Module):
             norm_layer(64),
             nn.LeakyReLU(0.2, True),  # 64*7*7
         )
-
+        self.pe = PositionalEncoding(64, 0.5)
         self.slf_attn = MultiHeadAttention(1, 64, 64, 64, dropout=0.5)
         self.imgtoclass = ImgtoClass_Metric(neighbor_k=neighbor_k)  # 1*num_classes
 
     def forward(self, input1, input2):
         # extract features of input1--query image
         q = self.features(input1).view(15, 64, -1).permute(0, 2, 1)
+        q = self.pe(q)
         q_trans = self.slf_attn(q, q, q)
-        # print(q.shape)
 
         # extract features of input2--support set
         S = []
         for i in range(len(input2)):
             support_set_sam = self.features(input2[i]).view(5, 64, -1).permute(0, 2, 1)
-            # print(support_set_sam.shape)
+            support_set_sam = self.pe(support_set_sam)
             support_set_sam_trans = self.slf_attn(support_set_sam, support_set_sam, support_set_sam)
-            # B, C, h, w = support_set_sam.size()
-            # support_set_sam = support_set_sam.permute(1, 0, 2, 3)
-            # support_set_sam = support_set_sam.contiguous().view(C, -1)
 
             S.append(support_set_sam_trans)
 
-        # print("-----------------"+str(len(S)))
         x = self.imgtoclass(q_trans, S)  # get Batch*num_classes
         return x
 
 
 # ========================== Define an image-to-class layer ==========================#
-
-
 class ImgtoClass_Metric(nn.Module):
     def __init__(self, neighbor_k=3):
         super(ImgtoClass_Metric, self).__init__()
@@ -337,9 +332,6 @@ class ImgtoClass_Metric(nn.Module):
             query_sam = input1[i]
             query_sam = query_sam.view(C, -1)
             query_sam = torch.transpose(query_sam, 0, 1)
-            # print(query_sam.shape)
-            # query_sam_norm = torch.norm(query_sam, 2, 1, True)
-            # query_sam = query_sam/query_sam_norm
 
             if torch.cuda.is_available():
                 inner_sim = torch.zeros(1, len(input2)).cuda()
@@ -347,14 +339,10 @@ class ImgtoClass_Metric(nn.Module):
 
             for j in range(len(input2)):
                 support_set_sam = input2[j]
-                # print(support_set_sam.shape)
                 support_set_sam = torch.transpose(support_set_sam, 0, 1)
-                # support_set_sam_norm = torch.norm(support_set_sam, 2, 0, True)
-                # support_set_sam = support_set_sam/support_set_sam_norm
 
                 # euclidean distance between a query sample and a support category
                 innerproduct_matrix = torch.cdist(query_sam, support_set_sam, p=2)
-                # print("innerproduct"+str(innerproduct_matrix.shape))
 
                 # choose the top-k nearest neighbors
                 topk_value, topk_index = torch.topk(innerproduct_matrix, self.neighbor_k, 1, largest=False)
@@ -387,15 +375,12 @@ class ImgtoClass_Metric(nn.Module):
 
             for j in range(len(input2)):  # j = 0,1,2
                 support_set_sam = input2[j].permute(0, 2, 1).view(5, 64, h, w)  # 5*64*7*7
-                # print(support_set_sam.shape)
                 support_set_sam_norm = torch.norm(support_set_sam, 2, 1, True)
                 support_set_sam = support_set_sam / support_set_sam_norm  # normalization
 
                 # SSIM between a query sample and a support category
                 innerproduct_matrix = ssim(query_sam, support_set_sam, data_range=1, size_average=False)
 
-                # choose the top-k nearest neighbors
-                # topk_value, topk_index = torch.topk(innerproduct_matrix, self.neighbor_k, 1)  # 441*3
                 inner_sim[0, j] = torch.sum(innerproduct_matrix)  # sum mk value
 
             Similarity_list.append(inner_sim)
