@@ -260,21 +260,18 @@ class FourLayer_64F(nn.Module):
             norm_layer(64),
             nn.LeakyReLU(0.2, True),  # 64*7*7
         )
-        self.pe = PositionalEncoding(64, 0.5)
         self.slf_attn = MultiHeadAttention(1, 64, 64, 64, dropout=0.5)
         self.imgtoclass = ImgtoClass_Metric(neighbor_k=neighbor_k)  # 1*num_classes
 
     def forward(self, input1, input2):
         # extract features of input1--query image
         q = self.features(input1).view(15, 64, -1).permute(0, 2, 1)
-        q = self.pe(q)
         q_trans = self.slf_attn(q, q, q)
 
         # extract features of input2--support set
         S = []
         for i in range(len(input2)):
             support_set_sam = self.features(input2[i]).view(5, 64, -1).permute(0, 2, 1)
-            support_set_sam = self.pe(support_set_sam)
             support_set_sam_trans = self.slf_attn(support_set_sam, support_set_sam, support_set_sam)
 
             S.append(support_set_sam_trans)
